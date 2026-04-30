@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+ 
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  portfolio    Portfolio?
+}
+
+model Portfolio {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @unique
+  user        User      @relation(fields: [userId], references: [id])
+  cashBalance Decimal   @default(100000)
+  createdAt   DateTime  @default(now())
+
+  holdings    Holding[]
+  transactions Transaction[]
+  snapshots   PortfolioSnapshot[]
+}
+
+model Holding {
+  id          Int      @id @default(autoincrement())
+
+  portfolioId Int
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+
+  ticker      String
+  quantity    Decimal  @db.Decimal(18, 2)
+  avgPrice    Decimal  @db.Decimal(18, 2)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([portfolioId, ticker])
+  @@index([portfolioId])
+}
+
+model Transaction {
+  id          Int       @id @default(autoincrement())
+
+  portfolioId Int
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+
+  ticker      String
+  type        TransactionType
+
+  quantity    Decimal   @db.Decimal(18, 2)
+  price       Decimal   @db.Decimal(18, 2)
+  totalAmount Decimal   @db.Decimal(18, 2)
+
+  createdAt   DateTime  @default(now())
+
+  @@index([portfolioId])
+}
+
+model PortfolioSnapshot {
+  id          Int       @id @default(autoincrement())
+
+  portfolioId Int
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+
+  totalValue    Decimal @db.Decimal(18, 2)
+  cashBalance   Decimal @db.Decimal(18, 2)
+  holdingsValue Decimal @db.Decimal(18, 2)
+
+  snapshotAt    DateTime @default(now())
+
+  @@index([portfolioId])
+}
+
+enum TransactionType {
+  BUY
+  SELL
+}
