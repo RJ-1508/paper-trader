@@ -1,11 +1,12 @@
 const express = require('express');
 const cors = require ('cors');
-require('dotenv').config
+require('dotenv').config()
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const authRoutes = require('./routes/auth')
 const marketRoutes = require('./routes/market')
+const tradeRoutes = require('./routes/trade')
 app.use(cors());
 app.use(express.json());
 
@@ -14,8 +15,9 @@ app.get('/', (req, res)=>{
 })
 
 app.listen(PORT,() => {
-    console.log(`Server running on port $PORT$`);
+    console.log(`Server running on port ${PORT}`);
 })  
 
 app.use('/api/auth', authRoutes);
 app.use('/api/market', marketRoutes);
+app.use('/api/trade', tradeRoutes)
