@@ -7,6 +7,7 @@ const PORT = process.env.PORT || 3000;
 const authRoutes = require('./routes/auth')
 const marketRoutes = require('./routes/market')
 const tradeRoutes = require('./routes/trade')
+const portfolioRoutes = require('./routes/portfolio')
 app.use(cors());
 app.use(express.json());
 
@@ -21,3 +22,4 @@ app.listen(PORT,() => {
 app.use('/api/auth', authRoutes);
 app.use('/api/market', marketRoutes);
 app.use('/api/trade', tradeRoutes)
+app.use('/api/portfolio', portfolioRoutes)
