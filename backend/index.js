@@ -15,11 +15,11 @@ app.get('/', (req, res)=>{
     res.json({message: "Paper Trader API is running"});
 })
 
-app.listen(PORT,() => {
-    console.log(`Server running on port ${PORT}`);
-})  
-
 app.use('/api/auth', authRoutes);
 app.use('/api/market', marketRoutes);
 app.use('/api/trade', tradeRoutes)
 app.use('/api/portfolio', portfolioRoutes)
+
+app.listen(PORT,() => {
+    console.log(`Server running on port ${PORT}`);
+})

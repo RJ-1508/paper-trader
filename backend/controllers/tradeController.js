@@ -151,7 +151,6 @@ const sell = async (req, res) => {
             });
 
             const qty = Number(existingHolding.quantity)
-            const avg = Number(existingHolding.avgPrice)
             const sellPrice = response.data.c
             const totalValue = sellPrice * shares
             const newQty = qty - shares
