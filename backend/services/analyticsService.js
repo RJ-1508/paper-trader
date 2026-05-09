@@ -30,7 +30,7 @@ const totalReturn = (snapshots) => {
 
 const sharpeRatio = (snapshots, riskFreeRate = 0) => {
     const returns = dailyReturns(snapshots);
-    if (returns.length === 0) {
+    if (returns.length < 2) {
         return 0
     }
     const meanReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
@@ -39,7 +39,7 @@ const sharpeRatio = (snapshots, riskFreeRate = 0) => {
         squaredDiff += (rtn - meanReturn) ** 2;
     }
     const stdevReturns = Math.sqrt(squaredDiff / (returns.length - 1));
-    if (stdevReturns === 0) {
+    if (stdevReturns <= Number.EPSILON) {
         return 0
     }
     return (meanReturn - riskFreeRate) / stdevReturns * Math.sqrt(252); //annualize
