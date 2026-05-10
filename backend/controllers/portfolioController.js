@@ -3,6 +3,7 @@ const getHoldingsWithPrices = require('../utils/getHoldingsWithPrices');
 const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
 const analyticsService = require('../services/analyticsService')
+const benchmarkService = require('../services/benchmarkService')
 
 const getPortfolio = async (req, res) => {
     try {
@@ -106,10 +107,25 @@ const getAnalytics = async (req, res) => {
             },
             orderBy: { snapshotAt: 'asc' }
         })
+
         const totalReturn = analyticsService.totalReturn(snapshots)
         const sharpe = analyticsService.sharpeRatio(snapshots)
         const drawdown = analyticsService.maxDrawdown(snapshots)
-        return res.status(200).json({ totalReturn, sharpeRatio: sharpe, maxDrawdown: drawdown })
+
+        let spyReturn = null
+        let alpha = null
+        if (snapshots.length >= 2) {
+            try {
+                const startDate = snapshots[0].snapshotAt
+                const endDate = new Date()
+                spyReturn = await benchmarkService.getSpyTotalReturn(startDate, endDate)
+                alpha = totalReturn - spyReturn
+            } catch (err) {
+                console.error('Benchmark fetch failed:', err)
+            }
+        }
+
+        return res.status(200).json({ totalReturn, sharpeRatio: sharpe, maxDrawdown: drawdown, spyReturn, alpha })
     } catch (error) {
         console.error(error)
         return res.status(500).json({ error: 'Something went wrong' })
