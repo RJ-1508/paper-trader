@@ -2,6 +2,7 @@ const axios = require('axios');
 const getHoldingsWithPrices = require('../utils/getHoldingsWithPrices');
 const { PrismaClient } = require('../generated/prisma');
 const prisma = new PrismaClient();
+const analyticsService = require('../services/analyticsService')
 
 const getPortfolio = async (req, res) => {
     try {
@@ -47,4 +48,71 @@ const getTransactions = async (req, res) => {
     }
 }
 
-module.exports = { getPortfolio, getTransactions }
+const getPerformance = async (req, res) => {
+    try {
+        const userId = req.userId
+        const portfolio = await prisma.portfolio.findUnique({
+            where: { userId },
+            select: { id: true }
+        })
+        if (!portfolio) {
+            return res.status(404).json({ error: 'Portfolio not found' })
+        }
+
+        const range = req.query.range
+        const rangeMap = { '1M': 30, '3M': 90, '1Y': 365 }
+        const days = rangeMap[range]
+        const cutoff = days ? new Date(Date.now() - days * 24 * 60 * 60 * 1000) : undefined
+
+        const snapshots = await prisma.portfolioSnapshot.findMany({
+            where: {
+                portfolioId: portfolio.id,
+                ...(cutoff && { snapshotAt: { gte: cutoff } })
+            },
+            select: {
+                snapshotAt: true,
+                totalValue: true
+            },
+            orderBy: { snapshotAt: 'asc' }
+        })
+
+        const performanceData = snapshots.map(s => ({
+            timestamp: s.snapshotAt,
+            value: Number(s.totalValue)
+        }))
+        return res.status(200).json({ performance: performanceData })
+    } catch (error) {
+        console.error(error)
+        return res.status(500).json({ error: 'Something went wrong' })
+    }
+}
+
+const getAnalytics = async (req, res) => {
+    try {
+        const userId = req.userId
+        const portfolio = await prisma.portfolio.findUnique({
+            where: { userId },
+            select: { id: true }
+        })
+        if (!portfolio) {
+            return res.status(404).json({ error: 'Portfolio not found' })
+        }
+
+        const snapshots = await prisma.portfolioSnapshot.findMany({
+            where: { portfolioId: portfolio.id },
+            select: {
+                snapshotAt: true,
+                totalValue: true
+            },
+            orderBy: { snapshotAt: 'asc' }
+        })
+        const totalReturn = analyticsService.totalReturn(snapshots)
+        const sharpe = analyticsService.sharpeRatio(snapshots)
+        const drawdown = analyticsService.maxDrawdown(snapshots)
+        return res.status(200).json({ totalReturn, sharpeRatio: sharpe, maxDrawdown: drawdown })
+    } catch (error) {
+        console.error(error)
+        return res.status(500).json({ error: 'Something went wrong' })
+    }
+}
+module.exports = { getPortfolio, getTransactions, getPerformance, getAnalytics }
