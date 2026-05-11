@@ -9,6 +9,7 @@ const marketRoutes = require('./routes/market')
 const tradeRoutes = require('./routes/trade')
 const portfolioRoutes = require('./routes/portfolio')
 const internalRouter = require('./routes/internal')
+const backtestRouter = require('./routes/backtest')
 app.use(cors());
 app.use(express.json());
 
@@ -21,6 +22,7 @@ app.use('/api/market', marketRoutes);
 app.use('/api/trade', tradeRoutes)
 app.use('/api/portfolio', portfolioRoutes)
 app.use('/api/internal', internalRouter)
+app.use('/api/backtest', backtestRouter)
 app.listen(PORT,() => {
     console.log(`Server running on port ${PORT}`);
 })
