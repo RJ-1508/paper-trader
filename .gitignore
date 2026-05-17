@@ -169,3 +169,6 @@ sketch
 # Ignore all local history of files
 .history
 .ionide
+
+# Project docs (generated, not for review)
+TECHNICAL_HANDOVER.md
