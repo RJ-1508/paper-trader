@@ -44,6 +44,10 @@ int main() {
         json j;
         j["implied_vol"] = iv;
         j["vega"]        = bs_vega(S, K, T, r, iv);
+        j["delta"]       = bs_delta(S, K, T, r, iv, is_call);
+        j["gamma"]       = bs_gamma(S, K, T, r, iv);
+        j["theta"]       = bs_theta(S, K, T, r, iv, is_call);
+        j["rho"]         = bs_rho(S, K, T, r, iv, is_call);
         res.set_content(j.dump(), "application/json");
     });
     std::cout << "engine listening on :8000\n";

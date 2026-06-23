@@ -11,6 +11,7 @@ export default function Navbar() {
             <Link href="/trade">Trade</Link>
             <Link href="/transactions">Transactions</Link>
             <Link href="/backtest">Backtest</Link>
+            <Link href="/options">Options</Link>
         </div>
         <div className="flex items-center gap-3">
             <span className="text-sm">{user?.email}</span>
