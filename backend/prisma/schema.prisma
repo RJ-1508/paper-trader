@@ -12,64 +12,65 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
- 
+
 model User {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique
+  id           Int        @id @default(autoincrement())
+  email        String     @unique
   passwordHash String
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime   @default(now())
   portfolio    Portfolio?
 }
 
 model Portfolio {
-  id          Int       @id @default(autoincrement())
-  userId      Int       @unique
-  user        User      @relation(fields: [userId], references: [id])
-  cashBalance Decimal   @default(100000)
-  createdAt   DateTime  @default(now())
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  user        User     @relation(fields: [userId], references: [id])
+  cashBalance Decimal  @default(100000)
+  createdAt   DateTime @default(now())
 
-  holdings    Holding[]
-  transactions Transaction[]
-  snapshots   PortfolioSnapshot[]
+  holdings        Holding[]
+  transactions    Transaction[]
+  snapshots       PortfolioSnapshot[]
+  optionPositions OptionPosition[]
 }
 
 model Holding {
-  id          Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   portfolioId Int
   portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
 
-  ticker      String
-  quantity    Decimal  @db.Decimal(18, 2)
-  avgPrice    Decimal  @db.Decimal(18, 2)
+  ticker   String
+  quantity Decimal @db.Decimal(18, 2)
+  avgPrice Decimal @db.Decimal(18, 2)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([portfolioId, ticker])
   @@index([portfolioId])
 }
 
 model Transaction {
-  id          Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   portfolioId Int
   portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
 
-  ticker      String
-  type        TransactionType
+  ticker String
+  type   TransactionType
 
-  quantity    Decimal   @db.Decimal(18, 2)
-  price       Decimal   @db.Decimal(18, 2)
-  totalAmount Decimal   @db.Decimal(18, 2)
+  quantity    Decimal @db.Decimal(18, 2)
+  price       Decimal @db.Decimal(18, 2)
+  totalAmount Decimal @db.Decimal(18, 2)
 
-  createdAt   DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([portfolioId])
 }
 
 model PortfolioSnapshot {
-  id          Int       @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   portfolioId Int
   portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
@@ -78,12 +79,80 @@ model PortfolioSnapshot {
   cashBalance   Decimal @db.Decimal(18, 2)
   holdingsValue Decimal @db.Decimal(18, 2)
 
-  snapshotAt    DateTime @default(now())
+  snapshotAt DateTime @default(now())
 
   @@index([portfolioId])
+}
+
+model OptionPosition {
+  id          Int       @id @default(autoincrement())
+  portfolioId Int
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+
+  underlying String
+  optionType OptionType
+  strike     Decimal    @db.Decimal(18, 2)
+  expiry     DateTime
+  occSymbol  String
+  multiplier Int        @default(100)
+
+  direction      PositionDirection
+  quantity       Int
+  openPremium    Decimal           @db.Decimal(18, 2)
+  collateralCash Decimal           @default(0) @db.Decimal(18, 2)
+  reservedShares Int               @default(0)
+
+  status       PositionStatus @default(OPEN)
+  closePremium Decimal?       @db.Decimal(18, 2)
+  realizedPnL  Decimal?       @db.Decimal(18, 2)
+
+  openedAt DateTime      @default(now())
+  closedAt DateTime?
+  events   OptionEvent[]
+
+  @@index([portfolioId, status])
+}
+
+model OptionEvent {
+  id         Int             @id @default(autoincrement())
+  positionId Int
+  position   OptionPosition  @relation(fields: [positionId], references: [id])
+  type       OptionEventType
+  quantity   Int
+  price      Decimal?        @db.Decimal(18, 2)
+  cashEffect Decimal         @db.Decimal(18, 2)
+  createdAt  DateTime        @default(now())
+
+  @@index([positionId])
 }
 
 enum TransactionType {
   BUY
   SELL
+}
+
+enum OptionType {
+  CALL
+  PUT
+}
+
+enum PositionDirection {
+  LONG
+  SHORT
+}
+
+enum PositionStatus {
+  OPEN
+  CLOSED
+  EXPIRED
+  EXERCISED
+  ASSIGNED
+}
+
+enum OptionEventType {
+  OPEN
+  CLOSE
+  EXPIRE
+  EXERCISE
+  ASSIGN
 }
