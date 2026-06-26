@@ -2,6 +2,8 @@ const { PrismaClient } = require("../generated/prisma");
 const { availableCash, availableShares } = require("../utils/buyingPower");
 const { getOptionChain } = require("../providers/alpacaOptions");
 const { parseOccSymbol } = require("../utils/occSymbol");
+const { getSpot } = require("../utils/getSpot");
+const { settlePosition } = require("../services/optionSettlementService");
 const prisma = new PrismaClient();
 
 const openPosition = async (req, res) => {
@@ -183,4 +185,67 @@ const closePosition = async (req, res) => {
   }
 };
 
-module.exports = { openPosition, closePosition };
+const listPositions = async (req, res) => {
+  try {
+    const portfolio = await prisma.portfolio.findUnique({
+      where: { userId: req.userId },
+      include: { optionPositions: { where: { status: "OPEN" } } },
+    });
+    if (!portfolio) return res.status(404).json({ error: "Portfolio not found" });
+
+    const open = portfolio.optionPositions;
+    const underlyings = [...new Set(open.map((p) => p.underlying))];
+    const snapMap = {};
+    for (const u of underlyings) {
+      Object.assign(snapMap, await getOptionChain(u));
+    }
+
+    const positions = open.map((pos) => {
+      const snap = snapMap[pos.occSymbol];
+      const q = snap?.latestQuote;
+      const mark =
+        q && q.bp > 0 && q.ap > 0 ? (q.bp + q.ap) / 2 : snap?.latestTrade?.p ?? null;
+      const openPremium = Number(pos.openPremium);
+      const unrealizedPnL =
+        mark != null
+          ? pos.direction === "LONG"
+            ? (mark - openPremium) * 100 * pos.quantity
+            : (openPremium - mark) * 100 * pos.quantity
+          : null;
+      return { ...pos, mark, unrealizedPnL };
+    });
+
+    return res.status(200).json(positions);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+};
+
+const exercisePosition = async (req, res) => {
+  try {
+    const portfolio = await prisma.portfolio.findUnique({
+      where: { userId: req.userId },
+    });
+    if (!portfolio) return res.status(404).json({ error: "Portfolio not found" });
+
+    const position = await prisma.optionPosition.findFirst({
+      where: {
+        id: Number(req.params.id),
+        portfolioId: portfolio.id,
+        status: "OPEN",
+        direction: "LONG",
+      },
+    });
+    if (!position) return res.status(404).json({ error: "No exercisable position found" });
+
+    const S = await getSpot(position.underlying);
+    const result = await prisma.$transaction((tx) => settlePosition(tx, position, S));
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+};
+
+module.exports = { openPosition, closePosition, listPositions, exercisePosition };

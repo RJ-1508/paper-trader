@@ -1,4 +1,5 @@
 const snapshotService = require('../services/snapshotService')
+const { settleExpiredPositions } = require('../services/expiredSettlementService')
 
 const snapshotAllPortfolios = async (req, res) => {
     try{
@@ -9,4 +10,13 @@ const snapshotAllPortfolios = async (req, res) => {
     }
 }
 
-module.exports = { snapshotAllPortfolios }
+const settleExpired = async (req, res) => {
+    try {
+        await settleExpiredPositions()
+        return res.status(200).json({ message: 'Settlement job complete' })
+    } catch (error) {
+        return res.status(500).json({ error: 'Something went wrong' })
+    }
+}
+
+module.exports = { snapshotAllPortfolios, settleExpired }

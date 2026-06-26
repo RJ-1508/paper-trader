@@ -5,5 +5,6 @@ const router = express.Router()
 
 router.use(internalAuth)
 router.post('/snapshot-all', internalController.snapshotAllPortfolios)
+router.post('/settle', internalController.settleExpired)
 
 module.exports = router
