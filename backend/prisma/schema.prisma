@@ -28,10 +28,11 @@ model Portfolio {
   cashBalance Decimal  @default(100000)
   createdAt   DateTime @default(now())
 
-  holdings        Holding[]
-  transactions    Transaction[]
-  snapshots       PortfolioSnapshot[]
-  optionPositions OptionPosition[]
+  holdings         Holding[]
+  transactions     Transaction[]
+  snapshots        PortfolioSnapshot[]
+  optionPositions  OptionPosition[]
+  optionStructures OptionStructure[]
 }
 
 model Holding {
@@ -106,9 +107,30 @@ model OptionPosition {
   closePremium Decimal?       @db.Decimal(18, 2)
   realizedPnL  Decimal?       @db.Decimal(18, 2)
 
+  structureId Int?
+  structure   OptionStructure? @relation(fields: [structureId], references: [id])
+
   openedAt DateTime      @default(now())
   closedAt DateTime?
   events   OptionEvent[]
+
+  @@index([portfolioId, status])
+  @@index([structureId])
+}
+
+model OptionStructure {
+  id          Int       @id @default(autoincrement())
+  portfolioId Int
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id])
+
+  label  String
+  status StructureStatus @default(OPEN)
+
+  openedAt    DateTime  @default(now())
+  closedAt    DateTime?
+  realizedPnL Decimal?  @db.Decimal(18, 2)
+
+  legs OptionPosition[]
 
   @@index([portfolioId, status])
 }
@@ -155,4 +177,9 @@ enum OptionEventType {
   EXPIRE
   EXERCISE
   ASSIGN
+}
+
+enum StructureStatus {
+  OPEN
+  CLOSED
 }

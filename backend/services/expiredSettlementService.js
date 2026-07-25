@@ -1,4 +1,5 @@
 const { settlePosition } = require("./optionSettlementService");
+const { closeStructureIfSettled } = require("./optionStructureService");
 const { getSpot } = require("../utils/getSpot");
 const { PrismaClient } = require("../generated/prisma");
 const prisma = new PrismaClient();
@@ -18,9 +19,10 @@ const settleExpiredPositions = async () => {
   let successCount = 0;
   for (const pos of due) {
     try {
-      await prisma.$transaction((tx) =>
-        settlePosition(tx, pos, spots[pos.underlying])
-      );
+      await prisma.$transaction(async (tx) => {
+        await settlePosition(tx, pos, spots[pos.underlying]);
+        await closeStructureIfSettled(tx, pos.structureId);
+      });
       successCount++;
     } catch (error) {
       console.error(`Failed to settle position ${pos.id} (${pos.occSymbol}):`, error);

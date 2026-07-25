@@ -1,20 +1,16 @@
 const { PrismaClient } = require("../generated/prisma");
-const { availableCash, availableShares } = require("../utils/buyingPower");
 const { getOptionChain } = require("../providers/alpacaOptions");
 const { parseOccSymbol } = require("../utils/occSymbol");
 const { getSpot } = require("../utils/getSpot");
 const { settlePosition } = require("../services/optionSettlementService");
+const { openLeg, closeLeg } = require("../services/optionLegService");
+const { closeStructureIfSettled } = require("../services/optionStructureService");
 const prisma = new PrismaClient();
 
 const openPosition = async (req, res) => {
   try {
     const { occSymbol, direction, quantity } = req.body;
-    const {
-      root: underlying,
-      strike,
-      type,
-      expiry,
-    } = parseOccSymbol(occSymbol);
+    const { root: underlying } = parseOccSymbol(occSymbol);
     const snapshots = await getOptionChain(underlying);
     const snap = snapshots[occSymbol];
     const q = snap?.latestQuote;
@@ -22,71 +18,9 @@ const openPosition = async (req, res) => {
       q && q.bp > 0 && q.ap > 0 ? (q.bp + q.ap) / 2 : snap?.latestTrade?.p;
     if (!premium) throw new Error("No market price available for contract");
 
-    const result = await prisma.$transaction(async (tx) => {
-      const portfolio = await tx.portfolio.findUnique({
-        where: { userId: req.userId },
-        include: {
-          holdings: true,
-          optionPositions: { where: { status: "OPEN" } },
-        },
-      });
-      if (!portfolio) throw new Error("Portfolio not found");
-
-      const open = portfolio.optionPositions;
-      const cashAvail = availableCash(portfolio.cashBalance, open);
-      const notional = premium * 100 * quantity;
-      let cashDelta = 0,
-        collateralCash = 0,
-        reservedShares = 0;
-
-      if (direction === "LONG") {
-        // long call or put
-        if (cashAvail < notional) throw new Error("Insufficient buying power");
-        cashDelta -= notional;
-      } else if (type === "PUT") {
-        // short put
-        collateralCash = strike * 100 * quantity;
-        if (cashAvail < collateralCash)
-          throw new Error("Insufficient cash to secure put");
-        cashDelta += notional;
-      } else {
-        // short call
-        reservedShares = 100 * quantity;
-        if (
-          availableShares(underlying, portfolio.holdings, open) < reservedShares
-        )
-          throw new Error("Not enough shares to cover call");
-        cashDelta += notional;
-      }
-      await tx.portfolio.update({
-        where: { id: portfolio.id },
-        data: { cashBalance: Number(portfolio.cashBalance) + cashDelta },
-      });
-      return tx.optionPosition.create({
-        data: {
-          portfolioId: portfolio.id,
-          underlying,
-          optionType: type.toUpperCase(),
-          strike,
-          expiry,
-          occSymbol,
-          direction,
-          quantity,
-          openPremium: premium,
-          collateralCash,
-          reservedShares,
-          status: "OPEN",
-          events: {
-            create: {
-              type: "OPEN",
-              quantity,
-              price: premium,
-              cashEffect: cashDelta,
-            },
-          },
-        },
-      });
-    });
+    const result = await prisma.$transaction((tx) =>
+      openLeg(tx, req.userId, { occSymbol, direction, quantity }, premium),
+    );
 
     return res.status(201).json(result);
   } catch (error) {
@@ -134,40 +68,10 @@ const closePosition = async (req, res) => {
       });
 
       if (!position) throw new Error("No open position found");
+      if (position.structureId) throw new Error("Position belongs to a structure");
 
-      const closeNotional = premium * 100 * position.quantity;
-      const openPremium = Number(position.openPremium);
-      let cashDelta, realizedPnL;
-      if (position.direction === "LONG") {
-        cashDelta = closeNotional;
-        realizedPnL = (premium - openPremium) * 100 * position.quantity;
-      } else {
-        cashDelta = -closeNotional;
-        realizedPnL = (openPremium - premium) * 100 * position.quantity;
-      }
-
-      await tx.portfolio.update({
-        where: { id: portfolio.id },
-        data: { cashBalance: Number(portfolio.cashBalance) + cashDelta },
-      });
-
-      return tx.optionPosition.update({
-        where: { id: position.id },
-        data: {
-          status: "CLOSED",
-          closePremium: premium,
-          realizedPnL,
-          closedAt: new Date(),
-          events: {
-            create: {
-              type: "CLOSE",
-              quantity: position.quantity,
-              price: premium,
-              cashEffect: cashDelta,
-            },
-          },
-        },
-      });
+      const { position: updated } = await closeLeg(tx, position, premium);
+      return updated;
     });
 
     return res.status(200).json(result);
@@ -180,6 +84,10 @@ const closePosition = async (req, res) => {
         .json({ error: "No market price available for contract" });
     if (error.message === "No open position found")
       return res.status(404).json({ error: "No open position found" });
+    if (error.message === "Position belongs to a structure")
+      return res
+        .status(400)
+        .json({ error: "Position belongs to a structure; close the structure instead" });
     console.error(error);
     return res.status(500).json({ error: "Something went wrong" });
   }
@@ -240,7 +148,11 @@ const exercisePosition = async (req, res) => {
     if (!position) return res.status(404).json({ error: "No exercisable position found" });
 
     const S = await getSpot(position.underlying);
-    const result = await prisma.$transaction((tx) => settlePosition(tx, position, S));
+    const result = await prisma.$transaction(async (tx) => {
+      const settled = await settlePosition(tx, position, S);
+      await closeStructureIfSettled(tx, position.structureId);
+      return settled;
+    });
     return res.status(200).json(result);
   } catch (error) {
     console.error(error);

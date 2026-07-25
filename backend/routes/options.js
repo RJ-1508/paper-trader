@@ -2,6 +2,13 @@ const express = require("express");
 const { getChain, getEnriched } = require("../controllers/optionsController");
 const { openPosition, closePosition, listPositions, exercisePosition } = require("../controllers/optionsTradeController");
 const { getNetGreeks, getScenario } = require("../controllers/optionsRiskController");
+const {
+  createStructure,
+  getStructures,
+  getOneStructure,
+  postCloseStructure,
+  postPayoff,
+} = require("../controllers/optionsStructureController");
 const authenticate = require("../middleware/auth");
 const router = express.Router();
 
@@ -12,6 +19,12 @@ router.post("/positions/:id/exercise", authenticate, exercisePosition);
 
 router.get("/greeks/net", authenticate, getNetGreeks);
 router.get("/scenario", authenticate, getScenario);
+
+router.get("/structures", authenticate, getStructures);
+router.post("/structures", authenticate, createStructure);
+router.get("/structures/:id", authenticate, getOneStructure);
+router.post("/structures/:id/close", authenticate, postCloseStructure);
+router.post("/payoff", authenticate, postPayoff);
 
 router.get("/:underlying", getChain);
 router.get("/:underlying/chain", getEnriched);
