@@ -7,7 +7,7 @@ const createLeg = async (tx, portfolioId, leg, premium, reserve) => {
     root: underlying,
     strike,
     type,
-    expiry,
+    expiryDate,
   } = parseOccSymbol(occSymbol);
   const notional = premium * 100 * quantity;
   const cashDelta = direction === "LONG" ? -notional : notional;
@@ -24,7 +24,7 @@ const createLeg = async (tx, portfolioId, leg, premium, reserve) => {
       underlying,
       optionType: type.toUpperCase(),
       strike,
-      expiry,
+      expiry: expiryDate,
       occSymbol,
       direction,
       quantity,

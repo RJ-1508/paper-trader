@@ -13,6 +13,7 @@ const getQuote = async (req, res) => {
         }
         return res.status(200).json({currentPrice: response.data.c, high: response.data.h, low: response.data.l})
     } catch (error) {
+        console.error(error);
         return res.status(500).json({error: "Something went wrong"})
     }
 }
@@ -38,6 +39,7 @@ const searchSymbol = async (req, res) => {
         }));
         return res.status(200).json(results);
     } catch (error) {
+        console.error(error);
         return res.status(500).json({error: "Something went wrong"})
     }
 }
