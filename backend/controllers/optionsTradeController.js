@@ -60,6 +60,7 @@ const closePosition = async (req, res) => {
 
       const position = await tx.optionPosition.findFirst({
         where: {
+          id: Number(req.params.id),
           portfolioId: portfolio.id,
           occSymbol,
           direction,
@@ -93,22 +94,36 @@ const closePosition = async (req, res) => {
   }
 };
 
+const POSITION_STATUSES = ["OPEN", "CLOSED", "EXPIRED", "EXERCISED", "ASSIGNED"];
+
 const listPositions = async (req, res) => {
   try {
+    const { status } = req.query;
+    let statusFilter;
+    if (status === undefined) statusFilter = "OPEN";
+    else if (status === "ALL") statusFilter = undefined;
+    else if (POSITION_STATUSES.includes(status)) statusFilter = status;
+    else return res.status(400).json({ error: "Invalid status filter" });
+
     const portfolio = await prisma.portfolio.findUnique({
       where: { userId: req.userId },
-      include: { optionPositions: { where: { status: "OPEN" } } },
+      include: {
+        optionPositions: statusFilter ? { where: { status: statusFilter } } : true,
+      },
     });
     if (!portfolio) return res.status(404).json({ error: "Portfolio not found" });
 
-    const open = portfolio.optionPositions;
-    const underlyings = [...new Set(open.map((p) => p.underlying))];
+    const allPositions = portfolio.optionPositions;
+    const openPositions = allPositions.filter((p) => p.status === "OPEN");
+    const underlyings = [...new Set(openPositions.map((p) => p.underlying))];
     const snapMap = {};
     for (const u of underlyings) {
       Object.assign(snapMap, await getOptionChain(u));
     }
 
-    const positions = open.map((pos) => {
+    const positions = allPositions.map((pos) => {
+      if (pos.status !== "OPEN") return { ...pos, mark: null, unrealizedPnL: null };
+
       const snap = snapMap[pos.occSymbol];
       const q = snap?.latestQuote;
       const mark =
@@ -160,4 +175,34 @@ const exercisePosition = async (req, res) => {
   }
 };
 
-module.exports = { openPosition, closePosition, listPositions, exercisePosition };
+const listPositionEvents = async (req, res) => {
+  try {
+    const portfolio = await prisma.portfolio.findUnique({
+      where: { userId: req.userId },
+    });
+    if (!portfolio) return res.status(404).json({ error: "Portfolio not found" });
+
+    const position = await prisma.optionPosition.findFirst({
+      where: { id: Number(req.params.id), portfolioId: portfolio.id },
+    });
+    if (!position) return res.status(404).json({ error: "Position not found" });
+
+    const events = await prisma.optionEvent.findMany({
+      where: { positionId: position.id },
+      orderBy: { createdAt: "asc" },
+    });
+
+    return res.status(200).json(events);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+};
+
+module.exports = {
+  openPosition,
+  closePosition,
+  listPositions,
+  exercisePosition,
+  listPositionEvents,
+};
