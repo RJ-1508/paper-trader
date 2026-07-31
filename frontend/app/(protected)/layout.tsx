@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import Navbar from "@/components/Navbar";
+import GuillocheBand from "@/components/GuillocheBand";
 
 export default function ProtectedLayout({
   children,
@@ -18,7 +19,7 @@ export default function ProtectedLayout({
     }
   }, [loading, user, router]);
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="p-6 text-text-dim">Loading...</div>;
   }
   if (!user) {
     return null;
@@ -26,6 +27,7 @@ export default function ProtectedLayout({
   return (
     <>
     <Navbar />
+    <GuillocheBand />
     <main>{children}</main>
     </>
   );

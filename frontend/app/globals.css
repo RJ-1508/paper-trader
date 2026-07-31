@@ -1,26 +1,62 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  /* base */
+  --color-ink: #0C0D0F;        /* page base, and clearing fill */
+  --color-panel: #16181B;      /* cards, tables, all data surfaces (opaque) */
+  --color-panel-2: #1B1D21;    /* hover rows, elevated surfaces, inputs */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* structure (silver) */
+  --color-silver: #9BA7B4;     /* icons, structural strokes, guilloché */
+  --color-silver-dim: #6C7682; /* secondary strokes, muted labels */
+  --color-hairline: rgb(155 167 180 / 0.14);        /* default borders */
+  --color-hairline-strong: rgb(155 167 180 / 0.26); /* emphasized borders */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* text */
+  --color-text: #DEE3E8;
+  --color-text-dim: #8C96A0;
+  --color-text-faint: #5E6772;
+
+  /* accent — rationed, see 3.5 */
+  --color-accent: #2DD4E0;
+  --color-accent-soft: rgb(45 212 224 / 0.12);
+
+  /* semantic */
+  --color-up: #5EBEA0;
+  --color-down: #D67670;
+
+  /* type */
+  --font-display: var(--font-space-grotesk);
+  --font-mono: var(--font-plex-mono);
+  --font-serif: var(--font-spectral);
+
+  --radius-panel: 6px;
+  --radius-control: 4px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-display);
+  background-color: var(--color-ink);
+  color: var(--color-text);
+  background-image: url("/deco/ink-strokes.svg");
+  background-repeat: repeat;
+  background-size: 768px 512px;
+  background-attachment: fixed;
+}
+
+.clearing {
+  position: relative;
+  background: var(--color-ink);
+  box-shadow: 0 0 48px 32px var(--color-ink); /* feathered melt, same color */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

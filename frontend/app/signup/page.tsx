@@ -4,6 +4,7 @@ import {useRouter} from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { AxiosError } from "axios";
+import GuillocheBand from "@/components/GuillocheBand";
 
 export default function SignupPage() {
     const { signup, user, loading: authLoading } = useAuth();
@@ -32,33 +33,48 @@ export default function SignupPage() {
         }
     }
     return (
-        <div className="max-w-sm mx-auto mt-20 p-6 border rounded flex flex-col gap-3">
-            <h1 className="text-xl font-bold">Sign Up</h1>
-            <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e)=> setEmail(e.target.value)}
-                className = "border rounded px-3 py-2"
+        <>
+            <GuillocheBand />
+            <div
+                aria-hidden="true"
+                className="pointer-events-none fixed -bottom-[75px] -right-[75px] h-[150px] w-[150px] opacity-40"
+                style={{
+                    backgroundImage: "url(/deco/guilloche-rosette.svg)",
+                    backgroundSize: "150px 150px",
+                    backgroundRepeat: "no-repeat",
+                }}
             />
-            <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e)=> setPassword(e.target.value)}
-                className = "border rounded px-3 py-2"
-            />
-            {error && <p className="text-red-600 text-sm">{error}</p>}
-            <button
-                onClick={handleSignup}
-                disabled={loading}
-                className="bg-black text-white rounded px-3 py-2 disabled:opacity-50"
-            >
-                {loading ? "Signing up..." : "Sign Up"}
-            </button>
-            <Link href="/login" className="text-sm text-blue-600">
-                Already have an account? Log in
-            </Link>
-        </div>
+            <div className="clearing max-w-sm mx-auto mt-20 p-6 flex flex-col gap-3">
+                <h1 className="text-xl font-serif">Sign Up</h1>
+                <input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e)=> setEmail(e.target.value)}
+                    className="bg-panel-2 border border-hairline rounded-control px-3 py-2 text-text placeholder:text-text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+                />
+                <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e)=> setPassword(e.target.value)}
+                    className="bg-panel-2 border border-hairline rounded-control px-3 py-2 text-text placeholder:text-text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+                />
+                {error && <p className="text-down text-sm">{error}</p>}
+                <button
+                    onClick={handleSignup}
+                    disabled={loading}
+                    className="bg-accent text-ink rounded-control px-3 py-2 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+                >
+                    {loading ? "Signing up..." : "Sign Up"}
+                </button>
+                <Link
+                    href="/login"
+                    className="text-sm text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+                >
+                    Already have an account? Log in
+                </Link>
+            </div>
+        </>
     );
 };

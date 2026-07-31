@@ -3,13 +3,19 @@ import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { AxiosError } from "axios";
 
+type BacktestResult = {
+  equityCurve: { date: string; totalValue: number }[];
+  metrics: { totalReturn: number; sharpeRatio: number; maxDrawdown: number };
+  trades: number;
+};
+
 export default function BacktestPage() {
   const [strategies, setStrategies] = useState<string[]>([]);
   const [ticker, setTicker] = useState("");
   const [strategy, setStrategy] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<BacktestResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -45,13 +51,13 @@ export default function BacktestPage() {
           placeholder="Ticker (e.g. AAPL)"
           value={ticker}
           onChange={(e) => setTicker(e.target.value)}
-          className="border rounded px-3 py-2"
+          className="bg-panel-2 border border-hairline rounded-control px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
         />
 
         <select
           value={strategy}
           onChange={(e) => setStrategy(e.target.value)}
-          className="border rounded px-3 py-2 bg-white dark:bg-black"
+          className="bg-panel-2 border border-hairline rounded-control px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
         >
           <option value="">Select a strategy</option>
           {strategies.map((s) => (
@@ -61,21 +67,21 @@ export default function BacktestPage() {
 
         <div className="flex gap-4">
           <div className="flex-1">
-            <label className="block text-sm text-gray-600 mb-1">Start date</label>
+            <label className="block text-sm text-text-dim mb-1">Start date</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="border rounded px-3 py-2 w-full"
+              className="bg-panel-2 border border-hairline rounded-control px-3 py-2 w-full font-mono tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
             />
           </div>
           <div className="flex-1">
-            <label className="block text-sm text-gray-600 mb-1">End date</label>
+            <label className="block text-sm text-text-dim mb-1">End date</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="border rounded px-3 py-2 w-full"
+              className="bg-panel-2 border border-hairline rounded-control px-3 py-2 w-full font-mono tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
             />
           </div>
         </div>
@@ -84,35 +90,37 @@ export default function BacktestPage() {
           type="button"
           onClick={handleRun}
           disabled={loading}
-          className="bg-black text-white rounded px-4 py-2 disabled:opacity-50"
+          className="bg-accent text-ink rounded-control px-4 py-2 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
         >
           {loading ? "Running..." : "Run Backtest"}
         </button>
       </div>
 
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-4 text-sm text-down">{error}</p>}
 
       {result && (
-        <div className="mt-6 border rounded p-4">
+        <div className="clearing mt-12 p-4">
           <h2 className="text-lg font-semibold mb-3">
             {strategy} on {ticker}
           </h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-sm text-gray-500">Total return</div>
-              <div className="font-semibold">{(result.metrics.totalReturn * 100).toFixed(2)}%</div>
+              <div className="text-sm text-text-dim">Total return</div>
+              <div className={`font-mono tabular-nums font-semibold ${result.metrics.totalReturn >= 0 ? "text-up" : "text-down"}`}>
+                {(result.metrics.totalReturn * 100).toFixed(2)}%
+              </div>
             </div>
             <div>
-              <div className="text-sm text-gray-500">Sharpe ratio</div>
-              <div className="font-semibold">{result.metrics.sharpeRatio.toFixed(2)}</div>
+              <div className="text-sm text-text-dim">Sharpe ratio</div>
+              <div className="font-mono tabular-nums font-semibold">{result.metrics.sharpeRatio.toFixed(2)}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-500">Max drawdown</div>
-              <div className="font-semibold">{(result.metrics.maxDrawdown * 100).toFixed(2)}%</div>
+              <div className="text-sm text-text-dim">Max drawdown</div>
+              <div className="font-mono tabular-nums font-semibold">{(result.metrics.maxDrawdown * 100).toFixed(2)}%</div>
             </div>
             <div>
-              <div className="text-sm text-gray-500">Trades executed</div>
-              <div className="font-semibold">{result.trades}</div>
+              <div className="text-sm text-text-dim">Trades executed</div>
+              <div className="font-mono tabular-nums font-semibold">{result.trades}</div>
             </div>
           </div>
         </div>

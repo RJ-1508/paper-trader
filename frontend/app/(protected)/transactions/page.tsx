@@ -2,8 +2,19 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 
+type Transaction = {
+    id: number;
+    portfolioId: number;
+    ticker: string;
+    type: "BUY" | "SELL";
+    quantity: string;
+    price: string;
+    totalAmount: string;
+    createdAt: string;
+};
+
 export default function TransactionsPage() {
-    const [transactions, setTransactions] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -14,41 +25,43 @@ export default function TransactionsPage() {
         .finally(() => setLoading(false));
     }, [])
 
-    if (loading) return <div className="p-6">Loading...</div>;
-    if (error) return <div className="p-6 text-red-600">{error}</div>
+    if (loading) return <div className="p-6 text-text-dim">Loading...</div>;
+    if (error) return <div className="p-6 text-down">{error}</div>
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Transactions</h1>
+            <h1 className="text-2xl font-bold mb-6">Transactions</h1>
             {transactions.length === 0 ? (
-                <p className="text-gray-500">No transactions yet — go trade.</p>
+                <p className="text-text-faint">No transactions yet — go trade.</p>
             ) : (
-                <table className="w-full border-collapse">
-                    <thead>
-                        <tr className="border-b text-left">
-                            <th className="p-2">Date</th>
-                            <th className="p-2">Ticker</th>
-                            <th className="p-2">Type</th>
-                            <th className="p-2">Quantity</th>
-                            <th className="p-2">Price</th>
-                            <th className="p-2">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {transactions.map((t: any) => (
-                            <tr key={t.id} className="border-b">
-                                <td className="p-2">{new Date(t.createdAt).toLocaleDateString()}</td>
-                                <td className="p-2 font-semibold">{t.ticker}</td>
-                                <td className={`p-2 font-semibold ${t.type === "buy" ? "text-green-600" : "text-red-600"}`}>
-                                    {t.type.toUpperCase()}
-                                </td>
-                                <td className="p-2">{t.quantity}</td>
-                                <td className="p-2">${Number(t.price).toLocaleString()}</td>
-                                <td className="p-2">${Number(t.totalAmount).toLocaleString()}</td>
+                <div className="clearing p-4">
+                    <table className="w-full border-collapse text-sm">
+                        <thead>
+                            <tr className="border-b border-hairline text-left text-text-dim">
+                                <th className="p-2 font-normal">Date</th>
+                                <th className="p-2 font-normal">Ticker</th>
+                                <th className="p-2 font-normal">Type</th>
+                                <th className="p-2 font-normal">Quantity</th>
+                                <th className="p-2 font-normal">Price</th>
+                                <th className="p-2 font-normal">Total</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {transactions.map((t: Transaction) => (
+                                <tr key={t.id} className="border-b border-hairline hover:bg-panel-2">
+                                    <td className="p-2 font-mono tabular-nums">{new Date(t.createdAt).toLocaleDateString()}</td>
+                                    <td className="p-2 font-semibold">{t.ticker}</td>
+                                    <td className={`p-2 font-semibold ${t.type === "BUY" ? "text-up" : "text-down"}`}>
+                                        {t.type}
+                                    </td>
+                                    <td className="p-2 font-mono tabular-nums">{t.quantity}</td>
+                                    <td className="p-2 font-mono tabular-nums">${Number(t.price).toLocaleString()}</td>
+                                    <td className="p-2 font-mono tabular-nums">${Number(t.totalAmount).toLocaleString()}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             )}
         </div>
     )
